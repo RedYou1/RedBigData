@@ -16,4 +16,10 @@ namespace RedBigData {
 	};
 	DllString convertString(string s);
 	string stringConvert(DllString s);
+
+	struct DllSelect
+	{
+		DllArray data;
+		size_t byteLen;
+	};
 }

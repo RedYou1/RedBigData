@@ -1,6 +1,7 @@
 namespace RedBigDataTests
 {
     using RedBigData;
+    using System.ComponentModel;
     using System.Runtime.InteropServices;
 
     [TestClass]
@@ -59,6 +60,36 @@ namespace RedBigDataTests
             Assert.AreEqual("num", tableB.columns[0].name);
             Assert.AreEqual(4ul, tableB.columns[0].byteLen);
             Assert.AreEqual(0uL, tableB.rows);
+
+            int[] data = redBigData.SelectColumn("tableB", "num").GetData<int>();
+            Assert.AreEqual(0, data.Length);
+
+            redBigData.InsertColumn("tableB", "num", 0, BitConverter.GetBytes(5));
+            data = redBigData.SelectColumn("tableB", "num").GetData<int>();
+            Assert.AreEqual(1, data.Length);
+
+            redBigData.InsertColumn("tableB", "num", 1, BitConverter.GetBytes(25));
+            data = redBigData.SelectColumn("tableB", "num").GetData<int>();
+            Assert.AreEqual(2, data.Length);
+            Assert.AreEqual(5, data[0]);
+            Assert.AreEqual(25, data[1]);
+
+            redBigData.InsertColumn("tableB", "num", 0, BitConverter.GetBytes(2));
+            data = redBigData.SelectColumn("tableB", "num").GetData<int>();
+            Assert.AreEqual(2, data.Length);
+            Assert.AreEqual(2, data[0]);
+            Assert.AreEqual(25, data[1]);
+
+            SelectColumn arr = redBigData.SelectColumn("tableB", "num");
+            arr.data.len = 8;
+            byte[] byteData = arr.GetData<byte>();
+            Assert.AreEqual(8, byteData.Length);
+            Assert.AreEqual(2, byteData[0]);
+            for (int i = 1; i <= 3; i++)
+                Assert.AreEqual(0, byteData[i]);
+            Assert.AreEqual(25, byteData[4]);
+            for (int i = 5; i <= 7; i++)
+                Assert.AreEqual(0, byteData[i]);
         }
     }
 }

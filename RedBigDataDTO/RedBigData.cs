@@ -1,101 +1,7 @@
 ﻿using System.Runtime.InteropServices;
-using System.Xml.Linq;
 
 namespace RedBigData
 {
-    public struct Column
-    {
-        public string name;
-        // 0 = dynamic
-        public ulong byteLen;
-
-        public Column(string name, ulong byteLen)
-        {
-            this.name = name;
-            this.byteLen = byteLen;
-        }
-    }
-
-    public struct Table
-    {
-        public Column[] columns;
-        public ulong rows;
-
-        public Table(Column[] columns, ulong rows)
-        {
-            this.columns = columns;
-            this.rows = rows;
-        }
-    }
-
-    internal struct DllColumn
-    {
-        public DllString name;
-        // 0 = dynamic
-        public ulong byteLen;
-
-        public Column Column()
-        {
-            return new Column(name.String(), byteLen);
-        }
-    }
-
-    internal struct DllTable
-    {
-        public DllArray<DllColumn> columns;
-        public ulong rows;
-
-        public Table Table()
-        {
-            return new Table(columns.ToArray().Select(c => c.Column()).ToArray(), rows);
-        }
-    }
-
-    internal unsafe struct DllArray<T>
-        where T : unmanaged
-    {
-        public DllArray(T* start, ulong len)
-        {
-            this.start = start;
-            this.len = len;
-        }
-
-        public T[] ToArray()
-        {
-            T[] values = new T[len];
-            for (ulong i = 0; i < len; i++)
-            {
-                values[i] = *(start + i);
-            }
-            return values;
-        }
-
-        public T* start { get; }
-        public ulong len { get; }
-    }
-
-    internal unsafe struct DllString
-    {
-        public DllString(char* start, ulong len)
-        {
-            this.start = start;
-            this.len = len;
-        }
-
-        public string String()
-        {
-            string a = "";
-            for (ulong i = 0; i < len; i++)
-            {
-                a += *(start + i);
-            }
-            return a;
-        }
-
-        public char* start { get; }
-        public ulong len { get; }
-    }
-
     public sealed class RedBigData : IDisposable
     {
         private IntPtr _ptr;
@@ -129,6 +35,11 @@ namespace RedBigData
                 columns.Select(c => c.name).ToArray(), columns.Select(c => c.name.Length).ToArray(),
                 columns.Select(c => c.byteLen).ToArray(), columns.Length);
 
+        public SelectColumn SelectColumn(string table, string column)
+            => SelectColumn(_ptr, table, table.Length, column, column.Length);
+
+        public void InsertColumn(string table, string column, ulong index, byte[] data)
+            => InsertColumn(_ptr, table, table.Length, column, column.Length, index, data, data.Length);
 
         [DllImport(@"..\..\..\x64\Release\RedBigData.dll",
             EntryPoint = "?Constructor@RedBigData@1@SAPEAV11@PEB_SH@Z", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
@@ -169,6 +80,14 @@ namespace RedBigData
         [DllImport(@"..\..\..\x64\Release\RedBigData.dll",
             EntryPoint = "?CreateTable@RedBigData@1@SAXPEAV11@PEB_SHPEAPEB_SPEAHPEA_K_K@Z", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
         private static extern void CreateTable(IntPtr RedBigData, string table, int len, string[] columnsNames, int[] columnsNamesLen, ulong[] byteLen, int columnsLen);
+
+        [DllImport(@"..\..\..\x64\Release\RedBigData.dll",
+            EntryPoint = "?SelectColumn@RedBigData@1@SA?AUDllSelect@1@PEAV11@PEB_SH1H@Z", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        private static extern SelectColumn SelectColumn(IntPtr RedBigData, string table, int len, string columnName, int columnNameLen);
+
+        [DllImport(@"..\..\..\x64\Release\RedBigData.dll",
+            EntryPoint = "?InsertColumn@RedBigData@1@SAXPEAV11@PEB_SH1H_KPEADH@Z", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        private static extern void InsertColumn(IntPtr RedBigData, string table, int len, string columnName, int columnNameLen, ulong index, byte[] data, int dataLen);
 
         public void Dispose()
         {
